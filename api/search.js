@@ -1,5 +1,6 @@
 const TARGET_NAICS = new Set(["238210", "335122", "335129"]);
 const TARGET_PSC = new Set(["N046", "N059"]);
+
 const TARGET_AGENCIES = [
   "VETERANS",
   "ARMY",
@@ -99,6 +100,42 @@ function includesAny(text, phrases) {
   return phrases.some((p) => text.includes(p));
 }
 
+function getDescription(opportunity) {
+  const parts = [];
+
+  if (opportunity.description) parts.push(String(opportunity.description));
+  if (opportunity.additionalInfoLinkDescription) parts.push(String(opportunity.additionalInfoLinkDescription));
+
+  const additionalInfo = opportunity.data?.pointOfContact?.additionalInfo;
+  if (Array.isArray(additionalInfo)) {
+    for (const item of additionalInfo) {
+      if (item?.content) parts.push(String(item.content));
+    }
+  }
+
+  return parts.join(" ").trim();
+}
+
+function getState(opportunity) {
+  return (
+    opportunity.placeOfPerformance?.state?.code ||
+    opportunity.placeOfPerformance?.state ||
+    opportunity.placeOfPerformanceState ||
+    opportunity.data?.placeOfPerformance?.state?.code ||
+    ""
+  );
+}
+
+function getCity(opportunity) {
+  return (
+    opportunity.placeOfPerformance?.city?.name ||
+    opportunity.placeOfPerformance?.city ||
+    opportunity.placeOfPerformanceCity ||
+    opportunity.data?.placeOfPerformance?.city?.name ||
+    ""
+  );
+}
+
 function hasStrongLightingSignal(title, description = "") {
   const text = `${title} ${description}`.toUpperCase();
   return includesAny(text, STRONG_LIGHTING_PHRASES);
@@ -111,27 +148,29 @@ function hasExclusion(title, description = "") {
 
 function scoreOpportunity(o) {
   const title = String(o.title || "");
-  const description = String(o.description || o.additionalInfoLinkDescription || "");
-  const agency = String(o.fullParentPathName || "").toUpperCase();
-  const setAside = String(o.typeOfSetAsideDescription || o.typeOfSetAside || "").toUpperCase();
+  const description = getDescription(o);
+  const agency = String(o.fullParentPathName || o.organizationName || "").toUpperCase();
+  const setAside = String(o.typeOfSetAsideDescription || o.typeOfSetAside || o.setAside || "").toUpperCase();
   const naics = String(o.naicsCode || "");
   const psc = String(o.classificationCode || "");
-  const awardCeiling = toNumber(o.awardCeiling);
+  const awardCeiling = toNumber(o.awardCeiling || o.data?.award?.amount);
 
-  const place = o.placeOfPerformance || {};
-  const state = String(place.state || o.placeOfPerformanceState || "").toUpperCase();
-  const city = String(place.city || o.placeOfPerformanceCity || "");
-  const dueDays = daysLeftFrom(o.responseDeadLine);
+  const state = String(getState(o) || "").toUpperCase();
+  const city = String(getCity(o) || "");
+  const dueDate = o.responseDeadLine || o.reponseDeadLine || "";
+  const dueDays = daysLeftFrom(dueDate);
 
   const strongLighting = hasStrongLightingSignal(title, description);
   const codeMatch = TARGET_NAICS.has(naics) || TARGET_PSC.has(psc);
   const agencyTarget = TARGET_AGENCIES.some((k) => agency.includes(k)) ? "Yes" : "No";
 
   if (hasExclusion(title, description) && !strongLighting) return null;
-  if (!strongLighting && !codeMatch) return null;
+
+  // Relaxed gate: allow agency-targeted or code-matched notices through
+  if (!strongLighting && !codeMatch && agencyTarget !== "Yes") return null;
 
   const setAsideMatch =
-    setAside.includes("SDVOSB") || setAside.includes("VOSB")
+    setAside.includes("SDVOSB") || setAside.includes("VETERAN")
       ? "Yes"
       : setAside.includes("SMALL") || setAside.includes("8(A)") || setAside.includes("HUBZONE")
         ? "Partial"
@@ -157,11 +196,11 @@ function scoreOpportunity(o) {
     type: "SAM.gov",
     "Notice ID": o.noticeId || "",
     "Title": o.title || "",
-    "Agency": o.fullParentPathName || "",
+    "Agency": o.fullParentPathName || o.organizationName || "",
     "Posted Date": o.postedDate || "",
-    "Due Date": o.responseDeadLine || "",
+    "Due Date": dueDate,
     "Days Left": dueDays,
-    "Set-Aside": o.typeOfSetAsideDescription || o.typeOfSetAside || "",
+    "Set-Aside": o.typeOfSetAsideDescription || o.typeOfSetAside || o.setAside || "",
     "NAICS": naics,
     "PSC": psc,
     "Estimated Value ($)": awardCeiling,
@@ -190,27 +229,26 @@ export default async function handler(req, res) {
       });
     }
 
-    const postedFromDays = Number(req.query.postedFromDays || 14);
-    const limit = Number(req.query.limit || 100);
-
-    const q =
-      req.query.q ||
-      '(("LED lighting" OR "lighting retrofit" OR relighting OR "sports lighting" OR "street lighting" OR "parking lot lighting" OR "lighting controls" OR "interior lighting" OR "exterior lighting" OR "fixture replacement"))';
+    const postedFromDays = Number(req.query.postedFromDays || 30);
+    const limit = Math.min(Number(req.query.limit || 250), 1000);
+    const title = String(req.query.title || "lighting");
 
     const today = new Date();
     const postedFrom = new Date(today.getTime() - postedFromDays * 24 * 60 * 60 * 1000);
 
-    const url = new URL("https://api.sam.gov/prod/opportunities/v2/search");
+    const url = new URL("https://api.sam.gov/opportunities/v2/search");
     url.searchParams.set("api_key", apiKey);
     url.searchParams.set("postedFrom", formatSamDate(postedFrom));
     url.searchParams.set("postedTo", formatSamDate(today));
     url.searchParams.set("limit", String(limit));
     url.searchParams.set("offset", "0");
-    url.searchParams.set("ptype", "o");
-    url.searchParams.set("q", q);
+    url.searchParams.set("title", title);
 
     const response = await fetch(url.toString(), {
-      headers: { "User-Agent": "Mozilla/5.0", "Accept": "application/json" }
+      headers: {
+        "User-Agent": "Mozilla/5.0",
+        "Accept": "application/json"
+      }
     });
 
     const text = await response.text();
@@ -228,16 +266,20 @@ export default async function handler(req, res) {
     } catch {
       return res.status(500).json({
         error: "SAM.gov returned non-JSON or empty content",
-        detail: text.slice(0, 500)
+        detail: text.slice(0, 1000)
       });
     }
 
     const raw = Array.isArray(data.opportunitiesData) ? data.opportunitiesData : [];
-    let rows = raw.map(scoreOpportunity).filter(Boolean);
-    rows.sort((a, b) => Number(b["Priority Score"] || 0) - Number(a["Priority Score"] || 0));
+
+    let rows = raw
+      .map(scoreOpportunity)
+      .filter(Boolean)
+      .sort((a, b) => Number(b["Priority Score"] || 0) - Number(a["Priority Score"] || 0));
 
     return res.status(200).json({
       count: rows.length,
+      rawCount: raw.length,
       rows
     });
   } catch (err) {
