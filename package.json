@@ -1,0 +1,9 @@
+{
+  "name": "energy-opportunity-intelligence-platform",
+  "private": true,
+  "version": "3.1.0",
+  "description": "EOIP full reset package with SAM.gov, grants, utilities, funding, alerts, and CRM export support",
+  "scripts": {
+    "dev": "vercel dev"
+  }
+}
