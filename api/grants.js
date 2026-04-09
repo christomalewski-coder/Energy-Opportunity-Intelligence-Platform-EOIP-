@@ -10,7 +10,8 @@ const rows = [
     "Priority Bucket": "Pursue",
     "Go/No-Go": "GO",
     "Next Action": "Engage municipality and confirm eligible scope",
-    "Category": "Grant"
+    "Category": "Grant",
+    "Source URL": "https://www.energy.gov/scep/energy-efficiency-and-conservation-block-grant-program"
   },
   {
     "Program Name": "DOE State Energy Program (SEP)",
@@ -23,7 +24,8 @@ const rows = [
     "Priority Bucket": "Pursue",
     "Go/No-Go": "GO",
     "Next Action": "Review state energy office release and project fit",
-    "Category": "Grant"
+    "Category": "Grant",
+    "Source URL": "https://www.energy.gov/scep/sep/state-energy-program"
   },
   {
     "Program Name": "Revolving Loan Fund - Energy Efficiency",
@@ -36,7 +38,8 @@ const rows = [
     "Priority Bucket": "Pursue",
     "Go/No-Go": "GO",
     "Next Action": "Verify borrower type and repayment terms",
-    "Category": "Loan"
+    "Category": "Loan",
+    "Source URL": "https://www.energy.gov/scep/wip/energy-efficiency-revolving-loan-fund-capitalization-grant-program"
   },
   {
     "Program Name": "179D Energy Efficient Commercial Buildings Deduction",
@@ -49,7 +52,8 @@ const rows = [
     "Priority Bucket": "Pursue",
     "Go/No-Go": "GO",
     "Next Action": "Confirm lighting / controls scope meets deduction criteria",
-    "Category": "Tax Incentive"
+    "Category": "Tax Incentive",
+    "Source URL": "https://www.irs.gov/credits-deductions/energy-efficient-commercial-buildings-deduction"
   },
   {
     "Program Name": "ESCO / Performance Contracting Pathway",
@@ -62,7 +66,8 @@ const rows = [
     "Priority Bucket": "Review",
     "Go/No-Go": "GO",
     "Next Action": "Assess whether project should be packaged as ESCO / EPC",
-    "Category": "Product"
+    "Category": "Product",
+    "Source URL": "https://www.energy.gov/femp/energy-savings-performance-contracts"
   },
   {
     "Program Name": "Green Bank Project Financing",
@@ -75,7 +80,8 @@ const rows = [
     "Priority Bucket": "Pursue",
     "Go/No-Go": "GO",
     "Next Action": "Review financing eligibility and minimum project size",
-    "Category": "Loan"
+    "Category": "Loan",
+    "Source URL": "https://www.coalitionforgreencapital.com/green-banks"
   },
   {
     "Program Name": "IRA-Linked Lighting Upgrade Incentive Stack",
@@ -88,7 +94,8 @@ const rows = [
     "Priority Bucket": "Review",
     "Go/No-Go": "GO",
     "Next Action": "Model stacked incentive package for LED / controls scope",
-    "Category": "Incentive"
+    "Category": "Incentive",
+    "Source URL": "https://www.energy.gov/energysaver/articles/making-most-energy-efficient-home-improvement-tax-credits-and-rebates"
   }
 ];
 
@@ -101,11 +108,16 @@ export default async function handler(req, res) {
     if (state) {
       data = data.filter(r => ["ALL", "MULTI", state].includes(String(r.State).toUpperCase()));
     }
+
     if (type) {
-      data = data.filter(r => String(r["Funding Type"]).toUpperCase().includes(type) || String(r.Category).toUpperCase().includes(type));
+      data = data.filter(
+        r =>
+          String(r["Funding Type"]).toUpperCase().includes(type) ||
+          String(r.Category).toUpperCase().includes(type)
+      );
     }
 
-    data = [...data].sort((a,b) => Number(b["Priority Score"] || 0) - Number(a["Priority Score"] || 0));
+    data = [...data].sort((a, b) => Number(b["Priority Score"] || 0) - Number(a["Priority Score"] || 0));
 
     return res.status(200).json({ count: data.length, rows: data });
   } catch (err) {
