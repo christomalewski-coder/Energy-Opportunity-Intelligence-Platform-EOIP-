@@ -492,7 +492,7 @@
 
 function renderTable(){
   const tbody = document.querySelector("#dataTable tbody");
-  tbody.innerHTML = rows.map(r => {
+  tbody.innerHTML = rows.map((r, idx) => {
     const name = r["Title"] || r["Program Name"] || r["Notice ID"] || "";
     const type = r.type || r["Funding Type"] || "Funding";
     const source = r["Agency"] || r["Source"] || "";
@@ -503,14 +503,36 @@ function renderTable(){
     const bucket = r["Priority Bucket"] || "";
     const next = r["Next Action"] || "";
     const link = r["Source URL"] || "";
+    const applicationUrl = r["Application URL"] || "";
+    const locationOptions = Array.isArray(r["Location Options"]) ? r["Location Options"] : [];
 
     const linkedName = link
       ? `<a href="${escapeHtml(link)}" target="_blank" rel="noopener noreferrer" style="font-weight:600;color:#1f4e78;text-decoration:none;">${escapeHtml(name)}</a>`
       : `<div style="font-weight:600">${escapeHtml(name)}</div>`;
 
+    const locationDropdown = locationOptions.length
+      ? `
+        <div class="small" style="margin-top:6px;">
+          <select onchange="openLocationLink(this)" style="padding:6px 8px;border:1px solid #dde5ef;border-radius:8px;max-width:240px;">
+            <option value="">Open state / location page</option>
+            ${locationOptions.map(opt => `<option value="${escapeHtml(opt.url)}">${escapeHtml(opt.label)}</option>`).join("")}
+          </select>
+        </div>
+      `
+      : "";
+
+    const applicationButton = applicationUrl
+      ? `<div class="small" style="margin-top:6px;"><a href="${escapeHtml(applicationUrl)}" target="_blank" rel="noopener noreferrer" style="color:#1f4e78;text-decoration:none;">Open application page</a></div>`
+      : "";
+
     return `
       <tr>
-        <td>${linkedName}<div class="small">${escapeHtml(r["City"] || "")}</div></td>
+        <td>
+          ${linkedName}
+          ${locationDropdown}
+          ${applicationButton}
+          <div class="small">${escapeHtml(r["City"] || "")}</div>
+        </td>
         <td>${escapeHtml(type)}</td>
         <td>${escapeHtml(source)}</td>
         <td>${escapeHtml(state)}</td>
@@ -522,6 +544,14 @@ function renderTable(){
       </tr>
     `;
   }).join("");
+}
+
+function openLocationLink(selectEl) {
+  const url = selectEl.value;
+  if (url) {
+    window.open(url, "_blank", "noopener,noreferrer");
+    selectEl.selectedIndex = 0;
+  }
 }
 
     function drawBarChart(svgId, items, colors) {
