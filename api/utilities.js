@@ -10,7 +10,8 @@ const rows = [
     "Priority Bucket": "Pursue",
     "Go/No-Go": "GO",
     "Next Action": "Check prescriptive vs custom lighting rebate path",
-    "Category": "Utility"
+    "Category": "Utility",
+    "Source URL": "https://www.duke-energy.com/business/products/smart-saver"
   },
   {
     "Program Name": "AES Indiana Energy Efficiency Rebate",
@@ -23,7 +24,8 @@ const rows = [
     "Priority Bucket": "Pursue",
     "Go/No-Go": "GO",
     "Next Action": "Confirm fixture types and measure list",
-    "Category": "Utility"
+    "Category": "Utility",
+    "Source URL": "https://aesindiana.com/business/ways-save/rebates"
   },
   {
     "Program Name": "State Energy Office Competitive Grant",
@@ -36,7 +38,8 @@ const rows = [
     "Priority Bucket": "Pursue",
     "Go/No-Go": "GO",
     "Next Action": "Review eligible entities and project timing",
-    "Category": "State Funding"
+    "Category": "State Funding",
+    "Source URL": "https://development.ohio.gov/community/energy"
   },
   {
     "Program Name": "Municipal Revolving Energy Loan",
@@ -49,7 +52,8 @@ const rows = [
     "Priority Bucket": "Review",
     "Go/No-Go": "GO",
     "Next Action": "Validate municipal borrower eligibility",
-    "Category": "Loan"
+    "Category": "Loan",
+    "Source URL": "https://eec.ky.gov/Financial-Programs/Pages/default.aspx"
   },
   {
     "Program Name": "Street Lighting Modernization Incentive",
@@ -62,7 +66,8 @@ const rows = [
     "Priority Bucket": "Pursue",
     "Go/No-Go": "GO",
     "Next Action": "Prioritize municipal roadway / parking lot prospects",
-    "Category": "Utility"
+    "Category": "Utility",
+    "Source URL": "https://comptroller.texas.gov/programs/seco/funding/"
   },
   {
     "Program Name": "Public Building Lighting Upgrade Grant",
@@ -75,7 +80,8 @@ const rows = [
     "Priority Bucket": "Pursue",
     "Go/No-Go": "GO",
     "Next Action": "Match public building list to eligible applicants",
-    "Category": "State Funding"
+    "Category": "State Funding",
+    "Source URL": "https://www.dep.pa.gov/Citizens/GrantsLoansRebates/Pages/default.aspx"
   }
 ];
 
@@ -88,11 +94,16 @@ export default async function handler(req, res) {
     if (state) {
       data = data.filter(r => ["ALL", "MULTI", state].includes(String(r.State).toUpperCase()));
     }
+
     if (type) {
-      data = data.filter(r => String(r["Funding Type"]).toUpperCase().includes(type) || String(r.Category).toUpperCase().includes(type));
+      data = data.filter(
+        r =>
+          String(r["Funding Type"]).toUpperCase().includes(type) ||
+          String(r.Category).toUpperCase().includes(type)
+      );
     }
 
-    data = [...data].sort((a,b) => Number(b["Priority Score"] || 0) - Number(a["Priority Score"] || 0));
+    data = [...data].sort((a, b) => Number(b["Priority Score"] || 0) - Number(a["Priority Score"] || 0));
 
     return res.status(200).json({ count: data.length, rows: data });
   } catch (err) {
