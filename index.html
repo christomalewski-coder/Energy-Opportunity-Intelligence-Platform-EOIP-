@@ -490,45 +490,39 @@
       document.getElementById("kpiScore").textContent = avgScore;
     }
 
-    function renderTable() {
-      const tbody = document.querySelector("#dataTable tbody");
+function renderTable(){
+  const tbody = document.querySelector("#dataTable tbody");
+  tbody.innerHTML = rows.map(r => {
+    const name = r["Title"] || r["Program Name"] || r["Notice ID"] || "";
+    const type = r.type || r["Funding Type"] || "Funding";
+    const source = r["Agency"] || r["Source"] || "";
+    const state = r["State"] || "";
+    const value = r["Estimated Value ($)"] || r["Funding Amount"] || 0;
+    const deadline = r["Days Left"] !== undefined && r["Days Left"] !== "" ? r["Days Left"] : (r["Deadline"] || "");
+    const score = r["Priority Score"] || "";
+    const bucket = r["Priority Bucket"] || "";
+    const next = r["Next Action"] || "";
+    const link = r["Source URL"] || "";
 
-      tbody.innerHTML = rows.map(r => {
-        const name = r["Title"] || r["Program Name"] || r["Notice ID"] || "";
-        const type = r.type || r["Funding Type"] || "Funding";
-        const source = r["Agency"] || r["Source"] || "";
-        const state = r["State"] || "";
-        const value = r["Estimated Value ($)"] || r["Funding Amount"] || 0;
-        const deadline = r["Days Left"] !== undefined && r["Days Left"] !== ""
-          ? r["Days Left"]
-          : (r["Deadline"] || r["Due Date"] || "");
-        const score = r["Priority Score"] || "";
-        const bucket = r["Priority Bucket"] || "";
-        const next = r["Next Action"] || "";
-        const url = r["Source URL"] || "";
+    const linkedName = link
+      ? `<a href="${escapeHtml(link)}" target="_blank" rel="noopener noreferrer" style="font-weight:600;color:#1f4e78;text-decoration:none;">${escapeHtml(name)}</a>`
+      : `<div style="font-weight:600">${escapeHtml(name)}</div>`;
 
-        const nameHtml = url
-          ? `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" style="font-weight:600;color:#1f4e78;text-decoration:none">${escapeHtml(name)}</a>`
-          : `<div style="font-weight:600">${escapeHtml(name)}</div>`;
-
-        return `
-          <tr>
-            <td>
-              ${nameHtml}
-              <div class="small">${escapeHtml(r["Notice ID"] || r["City"] || "")}</div>
-            </td>
-            <td>${escapeHtml(type)}</td>
-            <td>${escapeHtml(source)}</td>
-            <td>${escapeHtml(state)}</td>
-            <td>${money(toNum(value))}</td>
-            <td>${escapeHtml(deadline)}</td>
-            <td>${escapeHtml(score)}</td>
-            <td><span class="${bucketClass(bucket)}">${escapeHtml(bucket)}</span></td>
-            <td>${escapeHtml(next)}</td>
-          </tr>
-        `;
-      }).join("");
-    }
+    return `
+      <tr>
+        <td>${linkedName}<div class="small">${escapeHtml(r["City"] || "")}</div></td>
+        <td>${escapeHtml(type)}</td>
+        <td>${escapeHtml(source)}</td>
+        <td>${escapeHtml(state)}</td>
+        <td>${money(toNum(value))}</td>
+        <td>${escapeHtml(deadline)}</td>
+        <td>${escapeHtml(score)}</td>
+        <td><span class="${bucketClass(bucket)}">${escapeHtml(bucket)}</span></td>
+        <td>${escapeHtml(next)}</td>
+      </tr>
+    `;
+  }).join("");
+}
 
     function drawBarChart(svgId, items, colors) {
       const svg = document.getElementById(svgId);
