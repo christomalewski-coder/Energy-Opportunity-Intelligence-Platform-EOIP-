@@ -1,33 +1,11 @@
 {
   "routes": [
-    {
-      "src": "/api/search",
-      "dest": "/api/search.js"
-    },
-    {
-      "src": "/api/grants",
-      "dest": "/api/grants.js"
-    },
-    {
-      "src": "/api/utilities",
-      "dest": "/api/utilities.js"
-    },
-    {
-      "src": "/api/funding",
-      "dest": "/api/funding.js"
-    },
-    {
-      "handle": "filesystem"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
-    }
-  ],
-  "crons": [
-    {
-      "path": "/api/search",
-      "schedule": "0 8 * * *"
-    }
+    { "src": "/api/search", "dest": "/api/search.js" },
+    { "src": "/api/grants", "dest": "/api/grants.js" },
+    { "src": "/api/utilities", "dest": "/api/utilities.js" },
+    { "src": "/api/funding", "dest": "/api/funding.js" },
+    { "src": "/api/link-manifest", "dest": "/api/link-manifest.js" },
+    { "handle": "filesystem" },
+    { "src": "/(.*)", "dest": "/index.html" }
   ]
 }
